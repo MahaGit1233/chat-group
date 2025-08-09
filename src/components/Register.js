@@ -7,12 +7,24 @@ const Register = () => {
   const [enteredName, setEnteredName] = useState("");
   const [enteredMail, setEnteredMail] = useState("");
   const [enteredPass, setEnteredPass] = useState("");
+  const [enteredPhone, setEnteredPhone] = useState("");
   const [error, setError] = useState("");
   const [isLogin, setIsLogin] = useState(false);
 
   const url = isLogin
-    ? "http://localhost:4000/users/login"
-    : "http://localhost:4000/users/signup";
+    ? "http://localhost:4001/users/login"
+    : "http://localhost:4001/users/signup";
+
+  const singupDetails = {
+    name: enteredName,
+    email: enteredMail,
+    password: enteredPass,
+    phone: enteredPhone,
+  };
+
+  const loginDetails = { email: enteredMail, password: enteredPass };
+
+  const detalis = isLogin ? loginDetails : singupDetails;
 
   const toggleForm = () => {
     setIsLogin((prev) => !prev);
@@ -26,6 +38,10 @@ const Register = () => {
     setEnteredMail(event.target.value);
   };
 
+  const phoneChangeHandler = (event) => {
+    setEnteredPhone(event.target.value);
+  };
+
   const passChangeHandler = (event) => {
     setEnteredPass(event.target.value);
   };
@@ -33,39 +49,49 @@ const Register = () => {
   const formSubmitHandler = (event) => {
     event.preventDefault();
 
-    if (!enteredName || !enteredMail || !enteredPass) {
+    if (!enteredMail || !enteredPass) {
       setError("All the fields are required to be filled");
       return;
     }
 
     fetch(url, {
       method: "POST",
-      body: JSON.stringify({
-        name: enteredName,
-        email: enteredMail,
-        password: enteredPass,
-      }),
+      body: JSON.stringify(detalis),
       headers: {
         "Content-Type": "application/json",
       },
     })
       .then((res) => {
         if (res.ok) {
-          console.log("User has successfully signed up");
+          console.log(
+            isLogin
+              ? "User has successfully Logged in"
+              : "User has successfully signed up"
+          );
+          alert(
+            isLogin
+              ? "User has successfully Logged in"
+              : "User has successfully signed up"
+          );
           return res.json();
         } else {
           return res.json().then((data) => {
-            console.log(data.error.message);
+            console.log(data.message);
+            alert(data.message);
+            localStorage.setItem("user", JSON.stringify(data.user)); // store logged-in user
+            localStorage.setItem("token", data.token);
           });
         }
       })
       .catch((err) => {
         console.log(err.message);
+        alert(err.message);
       });
 
     setEnteredName("");
     setEnteredMail("");
     setEnteredPass("");
+    setEnteredPhone("");
     setError("");
   };
 
@@ -81,6 +107,17 @@ const Register = () => {
           value={enteredName}
           onChange={nameChangeHandler}
           placeholder="Enter your name"
+        />
+      </Form.Group>
+      <Form.Group>
+        <Form.Label className="formlabel">Phone Number:</Form.Label>
+        <Form.Control
+          style={{ backgroundColor: "#efebeb" }}
+          className="forminput"
+          type="number"
+          value={enteredPhone}
+          onChange={phoneChangeHandler}
+          placeholder="Enter your ph.no"
         />
       </Form.Group>
       <Form.Group>
