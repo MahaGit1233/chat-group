@@ -1,4 +1,4 @@
-import { BrowserRouter } from "react-router-dom";
+import { Route, Routes, useNavigate } from "react-router-dom";
 import Register from "./components/Register";
 import { useEffect, useState } from "react";
 import Chat from "./components/Chat";
@@ -6,14 +6,29 @@ import Chat from "./components/Chat";
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  const navigate = useNavigate();
+
+  const token = localStorage.getItem("token");
   useEffect(() => {
-    const token = localStorage.getItem("token");
     if (token) {
       setIsLoggedIn(true);
     }
-  }, []);
+  }, [token]);
 
-  return <BrowserRouter>{isLoggedIn ? <Chat /> : <Register />}</BrowserRouter>;
+  const logoutHandler = () => {
+    setIsLoggedIn(false);
+    navigate("/");
+  };
+
+  return (
+    <Routes>
+      <Route path="/" element={isLoggedIn && <Register />} />
+      <Route
+        path="/chat"
+        element={isLoggedIn && <Chat onLogout={logoutHandler} />}
+      />
+    </Routes>
+  );
 }
 
 export default App;

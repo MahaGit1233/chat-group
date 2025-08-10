@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./Register.css";
 import { Alert, Button, Card, Form } from "react-bootstrap";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 const Register = () => {
   const [enteredName, setEnteredName] = useState("");
@@ -10,6 +10,8 @@ const Register = () => {
   const [enteredPhone, setEnteredPhone] = useState("");
   const [error, setError] = useState("");
   const [isLogin, setIsLogin] = useState(false);
+
+  const navigate = useNavigate();
 
   const url = isLogin
     ? "http://localhost:4001/users/login"
@@ -73,6 +75,9 @@ const Register = () => {
               ? "User has successfully Logged in"
               : "User has successfully signed up"
           );
+          {
+            isLogin && navigate("/chat");
+          }
           return res.json();
         } else {
           return res.json().then((data) => {
