@@ -1,19 +1,24 @@
+require("dotenv").config();
 const express = require("express");
 const app = express();
 const cors = require("cors");
 const db = require("./utils/db-connection");
 const singupRouter = require("./routes/singupRouter");
+const userRouter = require("./routes/usersRouter");
 
 app.use(express.json());
 app.use(cors());
 
 const userModal = require("./modals/Users");
+const MessageModal = require("./modals/Messages");
+const indexModal = require("./modals/index");
 
 app.get("/", (req, res) => {
   res.send("<h1>Hello World!</h1>");
 });
 
 app.use("/users", singupRouter);
+app.use("/chat", userRouter);
 
 db.sync({ force: true })
   .then(() => {

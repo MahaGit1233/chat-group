@@ -1,11 +1,11 @@
 const Users = require("../modals/Users");
 const sequelize = require("../utils/db-connection");
 const bcrypt = require("bcrypt");
-// const jwt = require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 
-// const generateAccessToken = (id) => {
-//   return jwt.sign({ id }, process.env.TOKEN);
-// };
+const generateAccessToken = (id) => {
+  return jwt.sign({ id }, process.env.TOKEN);
+};
 
 const signedUpUsers = async (req, res) => {
   const transaction = await sequelize.transaction();
@@ -72,7 +72,8 @@ const loginUsers = async (req, res) => {
     await transaction.commit();
     res.status(200).json({
       message: "Login successful",
-      //   token: generateAccessToken(user.id),
+      token: generateAccessToken(user.id),
+      user: user,
     });
   } catch (error) {
     await transaction.rollback();
