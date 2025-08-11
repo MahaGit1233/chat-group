@@ -1,6 +1,7 @@
 const Users = require("../modals/Users");
 const Messages = require("../modals/Messages");
-const Sequelize = require("../utils/db-connection");
+const Sequelize = require("sequelize");
+const sequelize = require("../utils/db-connection");
 
 const getUsers = async (req, res) => {
   try {
@@ -35,8 +36,17 @@ const sendMessage = async (req, res) => {
 
 const getMessages = async (req, res) => {
   try {
+    const afterId = parseInt(req.query.afterId, 10);
+
+    let whereCondition = {};
+    if (!isNaN(afterId) && afterId > 0) {
+      whereCondition = { id: { [Sequelize.Op.gt]: afterId } };
+    }
+
     const messages = await Messages.findAll({
+      where: whereCondition,
       include: [{ model: Users, as: "user", attributes: ["id", "name"] }],
+      order: [["id", "Asc"]],
     });
     res
       .status(200)
