@@ -20,7 +20,7 @@ const Chat = (props) => {
       .then((data) => setUsers(data.users))
       .catch(console.error);
 
-    fetchMessages();
+    setInterval(fetchMessages, 1000);
   }, []);
 
   const fetchMessages = () => {
