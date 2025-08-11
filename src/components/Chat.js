@@ -6,12 +6,34 @@ const Chat = (props) => {
   const [messages, setMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState("");
 
+  const token = localStorage.getItem("token");
+  const loggedInUserId = localStorage.getItem("userId");
+
   useEffect(() => {
-    fetch("http://localhost:4001/chat")
+    fetch("http://localhost:4001/chat", {
+      method: "GET",
+      headers: {
+        Authorization: token,
+      },
+    })
       .then((res) => res.json())
       .then((data) => setUsers(data.users))
       .catch(console.error);
+
+    fetchMessages();
   }, []);
+
+  const fetchMessages = () => {
+    fetch("http://localhost:4001/chat/messages", {
+      method: "GET",
+      headers: {
+        Authorization: token,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => setMessages(data.messages || []))
+      .catch((err) => alert(err.message));
+  };
 
   const sendMessagesHandler = () => {
     fetch("http://localhost:4001/chat/messages", {
@@ -19,20 +41,24 @@ const Chat = (props) => {
       body: JSON.stringify({ message: currentMessage }),
       headers: {
         "Content-Type": "application/json",
+        Authorization: token,
       },
     })
       .then((res) => {
         if (!res.ok) {
           throw new Error("Failed to send message");
         }
+        return res.json();
       })
       .then((data) => {
-        alert("Message sent successfully");
+        alert(data.message);
         console.log(data);
+        fetchMessages();
       })
       .catch((err) => {
-        alert("Something went wrong");
+        alert(err.message);
       });
+    setCurrentMessage("");
   };
 
   return (
@@ -44,7 +70,10 @@ const Chat = (props) => {
         <Card style={{ width: "50%", borderRight: "1px solid #ccc" }}>
           <ListGroup variant="flush">
             {users.map((user) => (
-              <ListGroup.Item key={user.id}>{user.name}</ListGroup.Item>
+              <ListGroup.Item key={user.id}>
+                {user.id === JSON.parse(loggedInUserId) ? "you" : user.name}{" "}
+                joined
+              </ListGroup.Item>
             ))}
           </ListGroup>
 
@@ -57,11 +86,18 @@ const Chat = (props) => {
             }}
           >
             <div style={{ flex: 1, overflowY: "auto" }}>
-              {messages.map((msg, index) => (
-                <p key={index}>
-                  <strong>{msg.sender}:</strong> {msg.text}
-                </p>
-              ))}
+              {messages &&
+                messages.map((msg, index) => (
+                  <p key={index}>
+                    <strong>
+                      {msg.user.id === JSON.parse(loggedInUserId)
+                        ? "you"
+                        : msg.user.name}
+                      :
+                    </strong>{" "}
+                    {msg.message}
+                  </p>
+                ))}
             </div>
             <Form style={{ display: "flex" }}>
               <Form.Control

@@ -64,29 +64,31 @@ const Register = () => {
       },
     })
       .then((res) => {
-        if (res.ok) {
-          console.log(
-            isLogin
-              ? "User has successfully Logged in"
-              : "User has successfully signed up"
-          );
-          alert(
-            isLogin
-              ? "User has successfully Logged in"
-              : "User has successfully signed up"
-          );
-          {
-            isLogin && navigate("/chat");
+        return res.json().then((data) => {
+          if (res.ok) {
+            if (isLogin) {
+              localStorage.setItem("user", JSON.stringify(data.user));
+              localStorage.setItem("userId", data.user.id);
+              localStorage.setItem("token", data.token);
+              navigate("/chat");
+            }
+            console.log(
+              isLogin
+                ? "User has successfully Logged in"
+                : "User has successfully signed up"
+            );
+            alert(
+              isLogin
+                ? "User has successfully Logged in"
+                : "User has successfully signed up"
+            );
+          } else {
+            return res.json().then((data) => {
+              console.log(data.message);
+              alert(data.message);
+            });
           }
-          return res.json();
-        } else {
-          return res.json().then((data) => {
-            console.log(data.message);
-            alert(data.message);
-            localStorage.setItem("user", JSON.stringify(data.user)); // store logged-in user
-            localStorage.setItem("token", data.token);
-          });
-        }
+        });
       })
       .catch((err) => {
         console.log(err.message);
