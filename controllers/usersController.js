@@ -23,6 +23,7 @@ const sendMessage = async (req, res) => {
 
     const newMessage = await Messages.create({
       message: message,
+      UserId: req.user.id,
     });
     res
       .status(201)
@@ -32,7 +33,21 @@ const sendMessage = async (req, res) => {
   }
 };
 
+const getMessages = async (req, res) => {
+  try {
+    const messages = await Messages.findAll({
+      include: [{ model: Users, as: "user", attributes: ["id", "name"] }],
+    });
+    res
+      .status(200)
+      .json({ messages: messages, message: "Messages fetched successfuly" });
+  } catch (error) {
+    res.status(500).json({ message: "Unable to fetch the messages" });
+  }
+};
+
 module.exports = {
   getUsers,
   sendMessage,
+  getMessages,
 };
