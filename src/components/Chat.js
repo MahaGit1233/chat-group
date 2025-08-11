@@ -8,6 +8,31 @@ const Chat = (props) => {
 
   const token = localStorage.getItem("token");
   const loggedInUserId = localStorage.getItem("userId");
+  const userFromLs = JSON.parse(localStorage.getItem("user"));
+
+  const saveMessagesToLocal = (msgs) => {
+    const newMessages = msgs.slice(-10);
+    localStorage.setItem("chatMessages", JSON.stringify(newMessages));
+  };
+
+  const fetchNewMessages = (cachedMessages) => {
+    const lastId = cachedMessages.length
+      ? cachedMessages[cachedMessages.length - 1].id
+      : 0;
+
+    fetch(`http://localhost:4001/chat/messages?afterId=${lastId}`, {
+      method: "GET",
+      headers: { Authorization: token },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const updated = [...cachedMessages, ...(data.messages || [])];
+        const recent = updated.slice(-10);
+        setMessages(recent);
+        saveMessagesToLocal(recent);
+      })
+      .catch((err) => alert(err.message));
+  };
 
   useEffect(() => {
     fetch("http://localhost:4001/chat", {
@@ -20,7 +45,9 @@ const Chat = (props) => {
       .then((data) => setUsers(data.users))
       .catch(console.error);
 
-    setInterval(fetchMessages, 1000);
+    const newMsg = JSON.parse(localStorage.getItem("chatMessages")) || [];
+    setMessages(newMsg);
+    fetchNewMessages(newMsg);
   }, []);
 
   const fetchMessages = () => {
@@ -53,7 +80,16 @@ const Chat = (props) => {
       .then((data) => {
         alert(data.message);
         console.log(data);
-        fetchMessages();
+        const newMsgs = [
+          ...messages,
+          {
+            id: data.id,
+            message: currentMessage,
+            user: { id: userFromLs.id, name: userFromLs.name },
+          },
+        ];
+        setMessages(newMsgs.slice(-10));
+        saveMessagesToLocal(newMsgs);
       })
       .catch((err) => {
         alert(err.message);

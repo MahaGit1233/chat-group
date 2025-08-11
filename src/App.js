@@ -18,6 +18,7 @@ function App() {
   const logoutHandler = () => {
     setIsLoggedIn(false);
     navigate("/");
+    localStorage.removeItem("chatMessages");
   };
 
   return (
