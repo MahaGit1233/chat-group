@@ -5,6 +5,7 @@ const cors = require("cors");
 const db = require("./utils/db-connection");
 const singupRouter = require("./routes/singupRouter");
 const userRouter = require("./routes/usersRouter");
+const groupRouter = require("./routes/groupsRouter");
 
 app.use(express.json());
 app.use(cors());
@@ -12,6 +13,8 @@ app.use(cors());
 const userModal = require("./modals/Users");
 const MessageModal = require("./modals/Messages");
 const indexModal = require("./modals/index");
+const groupModal = require("./modals/Groups");
+const groupMemberModal = require("./modals/GroupMembers");
 
 app.get("/", (req, res) => {
   res.send("<h1>Hello World!</h1>");
@@ -19,6 +22,7 @@ app.get("/", (req, res) => {
 
 app.use("/users", singupRouter);
 app.use("/chat", userRouter);
+app.use("/groups", groupRouter);
 
 db.sync({ force: true })
   .then(() => {
