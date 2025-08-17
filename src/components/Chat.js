@@ -138,6 +138,35 @@ const Chat = (props) => {
     setCurrentMessage("");
   };
 
+  const promoteToAdmin = async (memberId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:4001/groups/${props.group.id}/promote`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
+          body: JSON.stringify({ memberId }),
+        }
+      );
+
+      const data = await response.json();
+      alert(data.message);
+
+      if (response.ok) {
+        setMembers((prev) =>
+          prev.map((m) =>
+            m.User.id === memberId ? { ...m, role: "admin" } : m
+          )
+        );
+      }
+    } catch (error) {
+      alert(error);
+    }
+  };
+
   return (
     <div>
       {showAddMemberForm && (
@@ -182,15 +211,32 @@ const Chat = (props) => {
                   >
                     {member.id === JSON.parse(loggedInUserId)
                       ? "you"
-                      : member.name}{" "}
-                    joined
-                    <Button
-                      onClick={() => deleteMembersHandler(member.id)}
-                      style={{ border: "none" }}
-                      variant="outline-dark"
-                    >
-                      🗑
-                    </Button>
+                      : member.User.name}{" "}
+                    ({member.role})
+                    {members.find(
+                      (m) => m.User.id === JSON.parse(loggedInUserId)
+                    )?.role === "admin" &&
+                      member.role === "member" && (
+                        <Button
+                          onClick={() => promoteToAdmin(member.User.id)}
+                          variant="outline-dark"
+                          style={{ border: "none" }}
+                        >
+                          Promote to Admin
+                        </Button>
+                      )}
+                    {members.find(
+                      (m) => m.User.id === JSON.parse(loggedInUserId)
+                    )?.role === "admin" &&
+                      member.role === "member" && (
+                        <Button
+                          onClick={() => deleteMembersHandler(member.User.id)}
+                          style={{ border: "none" }}
+                          variant="outline-dark"
+                        >
+                          🗑
+                        </Button>
+                      )}
                   </ListGroup.Item>
                 ))}
             </ListGroup>
