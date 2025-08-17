@@ -1,18 +1,32 @@
 import React, { useEffect, useState } from "react";
 import { ListGroup, Card, Form, Button } from "react-bootstrap";
+import AddMembersForm from "./AddMembersForm";
 
 const Chat = (props) => {
-  const [users, setUsers] = useState([]);
+  const [members, setMembers] = useState([]);
+  const [showMembers, setShowMembers] = useState(false);
   const [messages, setMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState("");
+  const [showAddMemberForm, setShowAddMemberForm] = useState(false);
 
   const token = localStorage.getItem("token");
   const loggedInUserId = localStorage.getItem("userId");
   const userFromLs = JSON.parse(localStorage.getItem("user"));
 
+  const showAddMemberFormHandler = () => {
+    setShowAddMemberForm(true);
+  };
+
+  const closeAddMemberForm = () => {
+    setShowAddMemberForm(false);
+  };
+
   const saveMessagesToLocal = (msgs) => {
     const newMessages = msgs.slice(-10);
-    localStorage.setItem("chatMessages", JSON.stringify(newMessages));
+    localStorage.setItem(
+      `chatMessages_${props.group.id}`,
+      JSON.stringify(newMessages)
+    );
   };
 
   const fetchNewMessages = (cachedMessages) => {
@@ -20,10 +34,13 @@ const Chat = (props) => {
       ? cachedMessages[cachedMessages.length - 1].id
       : 0;
 
-    fetch(`http://localhost:4001/chat/messages?afterId=${lastId}`, {
-      method: "GET",
-      headers: { Authorization: token },
-    })
+    fetch(
+      `http://localhost:4001/groups/${props.group.id}/messages?afterId=${lastId}`,
+      {
+        method: "GET",
+        headers: { Authorization: token },
+      }
+    )
       .then((res) => res.json())
       .then((data) => {
         const updated = [...cachedMessages, ...(data.messages || [])];
@@ -35,20 +52,44 @@ const Chat = (props) => {
   };
 
   useEffect(() => {
-    fetch("http://localhost:4001/chat", {
+    fetch(`http://localhost:4001/groups/${props.group.id}/members`, {
       method: "GET",
       headers: {
         Authorization: token,
       },
     })
       .then((res) => res.json())
-      .then((data) => setUsers(data.users))
+      .then((data) => setMembers(data.members))
       .catch(console.error);
 
-    const newMsg = JSON.parse(localStorage.getItem("chatMessages")) || [];
+    const newMsg =
+      JSON.parse(localStorage.getItem(`chatMessages_${props.group.id}`)) || [];
     setMessages(newMsg);
     fetchNewMessages(newMsg);
   }, []);
+
+  const deleteMembersHandler = async (memberId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:4001/groups/${props.group.id}/members/${memberId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: token,
+          },
+        }
+      );
+
+      const data = await response.json();
+      alert(data.message);
+
+      if (response.ok) {
+        setMembers((prev) => prev.filter((member) => member.id !== memberId));
+      }
+    } catch (error) {
+      alert(error);
+    }
+  };
 
   const fetchMessages = () => {
     fetch("http://localhost:4001/chat/messages", {
@@ -63,7 +104,7 @@ const Chat = (props) => {
   };
 
   const sendMessagesHandler = () => {
-    fetch("http://localhost:4001/chat/messages", {
+    fetch(`http://localhost:4001/groups/${props.group.id}/messages`, {
       method: "POST",
       body: JSON.stringify({ message: currentMessage }),
       headers: {
@@ -99,19 +140,61 @@ const Chat = (props) => {
 
   return (
     <div>
-      <Button onClick={props.onLogout} variant="outline-dark">
-        Logout
-      </Button>
-      <div style={{ display: "flex", height: "90vh" }}>
-        <Card style={{ width: "50%", borderRight: "1px solid #ccc" }}>
-          <ListGroup variant="flush">
-            {users.map((user) => (
-              <ListGroup.Item key={user.id}>
-                {user.id === JSON.parse(loggedInUserId) ? "you" : user.name}{" "}
-                joined
-              </ListGroup.Item>
-            ))}
-          </ListGroup>
+      {showAddMemberForm && (
+        <AddMembersForm onClose={closeAddMemberForm} group={props.group} />
+      )}
+      <div
+        style={{
+          display: "flex",
+          height: "94vh",
+          // border: "1px solid pink",
+        }}
+      >
+        <Card
+          style={{
+            borderRight: "1px solid #ccc",
+            backgroundColor: "whitesmoke",
+            height: "91vh",
+            width: "100%",
+            // border: "1px dashed yellow",
+            marginTop: "1%",
+            marginLeft: "0%",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "end", gap: "5px" }}>
+            <Button variant="outline-dark" onClick={showAddMemberFormHandler}>
+              Add Member
+            </Button>
+            <Button
+              variant="outline-dark"
+              onClick={() => setShowMembers((prev) => !prev)}
+            >
+              See Members
+            </Button>
+          </div>
+          {showMembers && (
+            <ListGroup flush>
+              {members &&
+                members.map((member) => (
+                  <ListGroup.Item
+                    key={member.id}
+                    style={{ backgroundColor: "whitesmoke" }}
+                  >
+                    {member.id === JSON.parse(loggedInUserId)
+                      ? "you"
+                      : member.name}{" "}
+                    joined
+                    <Button
+                      onClick={() => deleteMembersHandler(member.id)}
+                      style={{ border: "none" }}
+                      variant="outline-dark"
+                    >
+                      🗑
+                    </Button>
+                  </ListGroup.Item>
+                ))}
+            </ListGroup>
+          )}
 
           <div
             style={{

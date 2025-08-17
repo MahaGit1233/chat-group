@@ -1,7 +1,7 @@
 import { Route, Routes, useNavigate } from "react-router-dom";
 import Register from "./components/Register";
 import { useEffect, useState } from "react";
-import Chat from "./components/Chat";
+import ChatLayout from "./components/ChatLayout";
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -23,10 +23,10 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={isLoggedIn && <Register />} />
+      <Route path="/" element={!isLoggedIn && <Register />} />
       <Route
         path="/chat"
-        element={isLoggedIn && <Chat onLogout={logoutHandler} />}
+        element={isLoggedIn && <ChatLayout onLogout={logoutHandler} />}
       />
     </Routes>
   );
