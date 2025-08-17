@@ -88,13 +88,13 @@ const getMembers = async (req, res) => {
       return res.status(403).json({ error: "Member is not in the group" });
     }
 
-    const members = await Users.findAll({
+    const members = await GroupMembers.findAll({
+      where: { GroupId: groupId },
       include: {
-        model: GroupMembers,
-        where: { GroupId: groupId },
-        attributes: [],
+        model: Users,
+        attributes: ["id", "name"],
       },
-      attributes: ["id", "name"],
+      attributes: ["role"],
     });
 
     res.status(200).json({ message: "Members fetched successfully", members });
@@ -192,7 +192,7 @@ const postGroupMessages = async (req, res) => {
     const userId = req.user.id;
 
     if (!message) {
-      return res.stat(400).json({ error: "Message is required" });
+      return res.status(400).json({ error: "Message is required" });
     }
 
     const membership = await GroupMembers.findOne({
@@ -218,6 +218,38 @@ const postGroupMessages = async (req, res) => {
   }
 };
 
+const promoteToAdmin = async (req, res) => {
+  try {
+    const { memberId } = req.body;
+    const { groupId } = req.params;
+    const requestingUserId = req.user.id;
+
+    const adminCheck = await GroupMembers.findOne({
+      where: { GroupId: groupId, UserId: requestingUserId, role: "admin" },
+    });
+
+    if (!adminCheck) {
+      return res.status(403).json({ error: "Only admins can promote members" });
+    } else {
+      const member = await GroupMembers.findOne({
+        where: { GroupId: groupId, UserId: memberId },
+      });
+
+      if (!member) {
+        return res.status(404).json({ error: "User is not in this group" });
+      }
+
+      member.role = "admin";
+      await member.save();
+
+      res.status(200).json({ message: "User promoted to admin successfully" });
+    }
+  } catch (error) {
+    console.log("promote to admin error:", error);
+    res.status(500).json({ error: "Unable to promote the user to admin" });
+  }
+};
+
 module.exports = {
   postGroups,
   getGroups,
@@ -227,4 +259,5 @@ module.exports = {
   deleteMembers,
   getGroupMessages,
   postGroupMessages,
+  promoteToAdmin,
 };

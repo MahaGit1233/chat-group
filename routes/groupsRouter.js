@@ -27,5 +27,10 @@ router.post(
   auth.authenticate,
   groupsController.postGroupMessages
 );
+router.post(
+  "/:groupId/promote",
+  auth.authenticate,
+  groupsController.promoteToAdmin
+);
 
 module.exports = router;
