@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ListGroup, Card, Form, Button } from "react-bootstrap";
 import AddMembersForm from "./AddMembersForm";
+import socket from "../socket";
 
 const Chat = (props) => {
   const [members, setMembers] = useState([]);
@@ -9,9 +10,45 @@ const Chat = (props) => {
   const [currentMessage, setCurrentMessage] = useState("");
   const [showAddMemberForm, setShowAddMemberForm] = useState(false);
 
+  const [message, setMessage] = useState("");
+  const [name, setName] = useState("");
+
   const token = localStorage.getItem("token");
   const loggedInUserId = localStorage.getItem("userId");
   const userFromLs = JSON.parse(localStorage.getItem("user"));
+
+  useEffect(() => {
+    const userName = prompt("What is your name?");
+    setName(userName);
+    socket.emit("new-user", userName);
+
+    socket.on("chat-message", (data) => {
+      setMessages((prev) => [...prev, `${data.name}: ${data.message}`]);
+    });
+
+    socket.on("user-connected", (name) => {
+      setMessages((prev) => [...prev, `${name} connected`]);
+    });
+
+    socket.on("user-disconnected", (name) => {
+      setMessages((prev) => [...prev, `${name} disconnected`]);
+    });
+
+    return () => {
+      socket.off("chat-message");
+      socket.off("user-connected");
+      socket.off("user-disconnected");
+    };
+  }, []);
+
+  const sendMessage = (e) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+
+    setMessages((prev) => [...prev, `You: ${message}`]);
+    socket.emit("send-chat-message", message);
+    setMessage("");
+  };
 
   const showAddMemberFormHandler = () => {
     setShowAddMemberForm(true);
@@ -278,6 +315,33 @@ const Chat = (props) => {
             </Form>
           </div>
         </Card>
+      </div>
+      <div style={{ padding: "20px" }}>
+        <h2>Chat Room</h2>
+        <div
+          style={{
+            border: "1px solid black",
+            height: "300px",
+            overflowY: "scroll",
+            marginBottom: "10px",
+            padding: "10px",
+          }}
+        >
+          {messages.map((msg, index) => (
+            <div key={index}>{msg}</div>
+          ))}
+        </div>
+
+        <form onSubmit={sendMessage}>
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Type a message..."
+            style={{ width: "70%", marginRight: "10px" }}
+          />
+          <button type="submit">Send</button>
+        </form>
       </div>
     </div>
   );
