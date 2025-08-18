@@ -6,6 +6,8 @@ const db = require("./utils/db-connection");
 const morgan = require("morgan");
 const fs = require("fs");
 const path = require("path");
+const http = require("http");
+const initSocket = require("./socket");
 
 const singupRouter = require("./routes/singupRouter");
 const userRouter = require("./routes/usersRouter");
@@ -19,6 +21,9 @@ const accessLogStream = fs.createWriteStream(
 app.use(express.json());
 app.use(cors());
 app.use(morgan("combined", { stream: accessLogStream }));
+const server = http.createServer(app);
+
+initSocket(server);
 
 const userModal = require("./modals/Users");
 const MessageModal = require("./modals/Messages");
