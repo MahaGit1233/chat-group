@@ -9,6 +9,7 @@ const Chat = (props) => {
   const [messages, setMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState("");
   const [showAddMemberForm, setShowAddMemberForm] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const [message, setMessage] = useState("");
   const [name, setName] = useState("");
@@ -140,39 +141,78 @@ const Chat = (props) => {
       .catch((err) => alert(err.message));
   };
 
-  const sendMessagesHandler = () => {
-    fetch(`http://localhost:4001/groups/${props.group.id}/messages`, {
-      method: "POST",
-      body: JSON.stringify({ message: currentMessage }),
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token,
-      },
-    })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to send message");
-        }
-        return res.json();
+  const sendMessagesHandler = async () => {
+    if (!currentMessage.trim() && !selectedFile) {
+      return;
+    }
+
+    let newMsg = null;
+
+    if (selectedFile) {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result.split(",")[1];
+
+        const response = await fetch("http://localhost:4001/chat/upload", {
+          method: "POST",
+          body: JSON.stringify({
+            file: base64,
+            filename: selectedFile.name,
+          }),
+          headers: { "Content-Type": "application/json", Authorization: token },
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "File upload failed");
+
+        newMsg = {
+          id: data.data.id,
+          message: "[File]",
+          fileUrl: data.data.fileUrl,
+          user: { id: userFromLs.id, name: userFromLs.name },
+        };
+
+        setMessages((prev) => [...prev, newMsg].slice(-10));
+        saveMessagesToLocal([...messages, newMsg]);
+      };
+      reader.readAsDataURL(selectedFile);
+    }
+
+    if (currentMessage.trim()) {
+      fetch(`http://localhost:4001/groups/${props.group.id}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ message: currentMessage }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token,
+        },
       })
-      .then((data) => {
-        alert(data.message);
-        console.log(data);
-        const newMsgs = [
-          ...messages,
-          {
-            id: data.id,
-            message: currentMessage,
-            user: { id: userFromLs.id, name: userFromLs.name },
-          },
-        ];
-        setMessages(newMsgs.slice(-10));
-        saveMessagesToLocal(newMsgs);
-      })
-      .catch((err) => {
-        alert(err.message);
-      });
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error("Failed to send message");
+          }
+          return res.json();
+        })
+        .then((data) => {
+          alert(data.message);
+          console.log(data);
+          const newMsgs = [
+            ...messages,
+            {
+              id: data.id,
+              message: currentMessage,
+              user: { id: userFromLs.id, name: userFromLs.name },
+            },
+          ];
+          setMessages(newMsgs.slice(-10));
+          saveMessagesToLocal(newMsgs);
+        })
+        .catch((err) => {
+          alert(err.message);
+        });
+    }
     setCurrentMessage("");
+    setSelectedFile(null);
   };
 
   const promoteToAdmin = async (memberId) => {
@@ -201,6 +241,38 @@ const Chat = (props) => {
       }
     } catch (error) {
       alert(error);
+    }
+  };
+
+  const fileUploadHandler = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://localhost:4001/chat/upload", {
+        method: "POST",
+        body: formData,
+        headers: {
+          Authorization: token,
+        },
+      });
+
+      const data = await response.json();
+      if (data.url) {
+        socket.emit("send-chat-message", data.url);
+        setMessages((prev) => [
+          ...prev,
+          {
+            user: { id: userFromLs.id, name: userFromLs.name },
+            message: data.url,
+          },
+        ]);
+      }
+    } catch (error) {
+      alert("File upload failed:", error.message);
     }
   };
 
@@ -289,17 +361,49 @@ const Chat = (props) => {
           >
             <div style={{ flex: 1, overflowY: "auto" }}>
               {messages &&
-                messages.map((msg, index) => (
-                  <p key={index}>
-                    <strong>
-                      {msg.user.id === JSON.parse(loggedInUserId)
-                        ? "you"
-                        : msg.user.name}
-                      :
-                    </strong>{" "}
-                    {msg.message}
-                  </p>
-                ))}
+                messages.map((msg, index) => {
+                  const isFile = msg.message.startsWith("http");
+                  let content;
+
+                  if (isFile) {
+                    if (msg.message.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                      content = (
+                        <img
+                          src={msg.message}
+                          alt="file"
+                          style={{ maxWidth: "200px" }}
+                        />
+                      );
+                    } else if (msg.message.match(/\.(mp4|webm)$/i)) {
+                      content = (
+                        <video
+                          src={msg.message}
+                          controls
+                          style={{ maxWidth: "200px" }}
+                        />
+                      );
+                    } else {
+                      content = (
+                        <a href={msg.message} target="_blank" rel="noreferrer">
+                          📎 File
+                        </a>
+                      );
+                    }
+                  } else {
+                    content = msg.message;
+                  }
+                  return (
+                    <p key={index}>
+                      <strong>
+                        {msg.user.id === JSON.parse(loggedInUserId)
+                          ? "you"
+                          : msg.user.name}
+                        :
+                      </strong>{" "}
+                      {content}
+                    </p>
+                  );
+                })}
             </div>
             <Form style={{ display: "flex" }}>
               <Form.Control
@@ -308,6 +412,11 @@ const Chat = (props) => {
                 onChange={(e) => setCurrentMessage(e.target.value)}
                 style={{ flex: 1, marginRight: "10px" }}
                 placeholder="Type a message..."
+              />
+              <Form.Control
+                type="file"
+                onChange={(e) => setSelectedFile(e.target.files[0])}
+                style={{ width: "200px" }}
               />
               <Button onClick={sendMessagesHandler} variant="outline-dark">
                 Send
@@ -328,7 +437,7 @@ const Chat = (props) => {
           }}
         >
           {messages.map((msg, index) => (
-            <div key={index}>{msg}</div>
+            <div key={index}>{msg.message}</div>
           ))}
         </div>
 
