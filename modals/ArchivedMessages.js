@@ -1,12 +1,12 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../utils/db-connection");
 
-const Messages = sequelize.define("Messages", {
+const ArchivedMessages = sequelize.define("ArchivedMessages", {
   id: {
     type: DataTypes.INTEGER,
-    autoIncrement: true,
-    allowNull: false,
     primaryKey: true,
+    allowNull: false,
+    autoIncrement: true,
   },
   message: {
     type: DataTypes.TEXT,
@@ -18,4 +18,4 @@ const Messages = sequelize.define("Messages", {
   },
 });
 
-module.exports = Messages;
+module.exports = ArchivedMessages;

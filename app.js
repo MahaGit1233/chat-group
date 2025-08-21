@@ -8,6 +8,9 @@ const fs = require("fs");
 const path = require("path");
 const http = require("http");
 const initSocket = require("./socket");
+const { archivedJob } = require("./cron/ArchivedMessages");
+
+archivedJob.start();
 
 const singupRouter = require("./routes/singupRouter");
 const userRouter = require("./routes/usersRouter");
